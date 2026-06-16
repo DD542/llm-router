@@ -1,0 +1,8 @@
+﻿.env
+logs/
+__pycache__/
+.venv/
+*.pyc
+sample.pdf
+big.txt
+*.tiktoken
