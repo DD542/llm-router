@@ -6,3 +6,5 @@ __pycache__/
 sample.pdf
 big.txt
 *.tiktoken
+llm-dashboard/node_modules/
+llm-dashboard/dist/

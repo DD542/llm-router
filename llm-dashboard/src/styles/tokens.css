@@ -1,0 +1,20 @@
+:root{
+  --ink:#0B131F; --panel:#101A28; --panel-2:#16212F; --raise:#1B2838;
+  --line:#22303F; --line-soft:rgba(34,48,63,.55);
+  --text:#E7EEF6; --muted:#7E90A6; --faint:#54657B;
+  --cool:#46C7B6; --cool-dim:rgba(70,199,182,.14);
+  --warm:#C98A4B; --warm-dim:rgba(201,138,75,.16);
+  --bad:#D0596B;
+  --r:3px;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --display:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{background:var(--ink);color:var(--text);font-family:var(--body);line-height:1.5}
+#app{min-height:100vh}
+::selection{background:var(--cool);color:var(--ink)}
+:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

@@ -1,0 +1,21 @@
+# --- Moteur ---
+tiktoken
+pymupdf
+requests
+
+# --- Fournisseurs de modeles ---
+groq
+anthropic
+python-dotenv
+
+# --- API (dashboard) ---
+fastapi
+uvicorn[standard]
+python-multipart
+
+# --- Medias (image / video) ---
+pillow
+pytesseract
+opencv-python
+faster-whisper
+pillow-avif-plugin
