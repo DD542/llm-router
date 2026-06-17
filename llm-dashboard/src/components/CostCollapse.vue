@@ -64,13 +64,13 @@ h2{font-family:var(--display); font-weight:500; font-size:18px}
 .row{display:grid; grid-template-columns:92px 1fr 96px; gap:16px;
   align-items:center; padding:8px 0}
 .task{font-family:var(--mono); font-size:12px; color:var(--muted)}
-.track{position:relative; height:16px; background:#0C1623;
-  border-radius:2px; overflow:visible}
-.base{position:absolute; left:0; top:0; height:100%; border-radius:2px;
-  background:linear-gradient(90deg,var(--warm),#9a6836); opacity:.42;
+.track{position:relative; height:18px; background:#101A26;
+  border-radius:7px; overflow:visible}
+.base{position:absolute; left:0; top:0; height:100%; border-radius:7px;
+  background:linear-gradient(90deg,var(--warm),#566576); opacity:.5;
   transform-origin:left; animation:grow .8s cubic-bezier(.2,.8,.2,1) both}
-.eng{position:absolute; left:0; top:0; height:100%; border-radius:2px;
-  background:var(--cool); box-shadow:0 0 10px rgba(70,199,182,.45);
+.eng{position:absolute; left:0; top:0; height:100%; border-radius:7px;
+  background:var(--accent); box-shadow:0 0 12px rgba(238,138,63,.5);
   transform-origin:left; animation:grow .8s cubic-bezier(.2,.8,.2,1) .12s both}
 .tip{position:absolute; bottom:22px; left:0; white-space:nowrap;
   background:var(--raise); border:1px solid var(--line); border-radius:var(--r);

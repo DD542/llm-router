@@ -37,7 +37,7 @@ const items = [
   display:flex; flex-direction:column; min-height:100vh}
 .brand{display:flex; align-items:center; gap:12px; padding:4px 6px 28px}
 .mark{width:38px; height:38px; border-radius:var(--r);
-  background:linear-gradient(135deg,var(--cool),#2f8d80);
+  background:linear-gradient(135deg,var(--accent),#cf6e2a);
   color:var(--ink); font-family:var(--display); font-weight:700;
   font-size:15px; display:grid; place-items:center; letter-spacing:-.02em}
 .brand-name{font-family:var(--display); font-weight:500; font-size:16px}

@@ -1,7 +1,7 @@
 # llm-router
 
-> Moteur d'optimisation de requêtes LLM : pré-traitement, compression, routing multi-modèles, contrôle qualité et ré-routage automatique, avec mesure des coûts.
-> LLM request optimization engine: preprocessing, compression, multi-model routing, quality control and automatic re-routing, with cost measurement.
+> Moteur d'optimisation de requêtes LLM : pré-traitement multi-formats, compression, routing multi-modèles, contrôle qualité, ré-routage auto-apprenant — avec API et tableau de bord.
+> LLM request optimization engine: multi-format preprocessing, compression, multi-model routing, quality control, self-learning re-routing — with API and dashboard.
 
 `Français` | [`English`](#english)
 
@@ -11,119 +11,109 @@
 
 ### Présentation
 
-`llm-router` s'intercale entre une requête utilisateur et les modèles de langage pour **réduire le coût d'inférence sans dégrader la qualité**. Pour chaque requête, il pré-traite les fichiers joints, compresse le prompt, classe la tâche, route vers le modèle le moins cher capable de la traiter, exécute l'appel, **note la qualité de la réponse via un modèle juge**, et **escalade automatiquement** vers un modèle supérieur si la qualité est insuffisante. Chaque exécution est journalisée pour produire un benchmark mesuré.
+`llm-router` s'intercale entre une requête et les modèles de langage pour **réduire le coût d'inférence sans dégrader la qualité**. Pour chaque demande, il pré-traite les fichiers joints, compresse le prompt, classe la tâche, route vers le modèle le moins cher capable de la traiter, exécute l'appel, note la qualité via un modèle juge, et **escalade** vers un modèle supérieur seulement si nécessaire. Il **apprend de son historique** pour démarrer au bon niveau au fil du temps.
 
-Le projet fonctionne intégralement avec des modèles **gratuits** par défaut : Ollama en local et le tier gratuit de Groq (Llama 3.3 70B). Le support des API payantes (Anthropic) est intégré et prêt, derrière un garde-fou de dépense.
+Le projet tourne intégralement avec des modèles **gratuits** par défaut (Ollama local + tier gratuit de Groq). Le support des API payantes (Anthropic) est intégré, derrière un garde-fou de dépense.
 
 ### Pipeline
 
 ```
 Requête (+ fichier)
-  ├─ Pré-traitement fichier   → PDF/texte propre, tables en markdown, budget task-aware
-  ├─ Compression              → réduction de tokens sans perte de sens
-  ├─ Classification           → trivial / simple / moderate / complex
-  ├─ Routing                  → modèle le moins cher au-dessus du plancher de qualité
-  ├─ Exécution                → appel réel (Ollama / Groq / Anthropic)
-  ├─ Contrôle qualité         → note /10 par un modèle juge (Groq 70B)
-  ├─ Ré-routage (escalade)    → si qualité < seuil, montée vers un modèle supérieur
-  └─ Journalisation           → benchmark cumulé (coût, tokens, qualité, latence, escalades)
+  ├─ Pré-traitement    → PDF, texte, image (OCR / vision), vidéo (transcription + scènes)
+  ├─ Compression       → réduction de tokens sans perte de sens
+  ├─ Classification    → trivial / simple / moderate / complex
+  ├─ Routing           → modèle le moins cher au-dessus du plancher (auto-appris)
+  ├─ Exécution         → appel réel (Ollama / Groq / Anthropic)
+  ├─ Contrôle qualité  → note /10 par un modèle juge
+  ├─ Ré-routage        → escalade vers un modèle supérieur si qualité insuffisante
+  └─ Journalisation    → benchmark mesuré (coût, tokens, qualité, latence, escalades)
 ```
 
-### Architecture
+### Composants
 
 | Module | Rôle |
 |--------|------|
-| `config.py` | Catalogue des modèles, tarifs, niveaux de capacité (tiers) |
-| `engine/tokens.py` | Comptage de tokens (tiktoken + fallback) |
-| `engine/preprocessor.py` | Extraction PDF/texte (PyMuPDF), tables, réduction au budget |
-| `engine/compressor.py` | Compression de prompt déterministe et sûre |
-| `engine/classifier.py` | Classification de tâche (Ollama + fallback heuristique) |
-| `engine/router.py` | Sélection du modèle le moins cher au-dessus du plancher + cible d'escalade |
-| `engine/llm_client.py` | Appels réels : Ollama, Groq, Anthropic (clés via `.env`, garde-fou) |
-| `engine/quality.py` | Évaluation de la qualité des réponses (modèle juge) |
-| `engine/escalation.py` | Ré-routage par qualité : escalade vers un tier supérieur |
-| `engine/orchestrator.py` | Assemblage du pipeline complet et chiffrage |
-| `engine/metrics.py` | Journalisation persistante et statistiques agrégées |
-
-### Principe de fonctionnement
-
-Chaque classe de tâche définit un **plancher de qualité** (tier minimum). Le routeur sélectionne le modèle le moins cher dont le tier est supérieur ou égal à ce plancher. Après exécution, un **modèle juge** note la réponse sur 10. Si la note est sous le seuil configuré, le moteur **escalade** vers un modèle de tier supérieur et compare. Il conserve la meilleure réponse valide. Le coût de chaque exécution est comparé à un **baseline** (la requête entière envoyée au modèle le plus puissant, sans optimisation) pour quantifier l'économie réelle.
+| `config.py` | Catalogue des modèles, tarifs, niveaux (tiers) |
+| `engine/tokens.py` | Comptage de tokens |
+| `engine/preprocessor.py` | Extraction PDF / texte / image / vidéo, budget task-aware |
+| `engine/media.py` | Image (OCR Tesseract + vision llava), vidéo (Whisper + scènes) |
+| `engine/compressor.py` | Compression de prompt déterministe |
+| `engine/classifier.py` | Classification de tâche (Ollama + fallback) |
+| `engine/router.py` | Sélection du modèle + cible d'escalade |
+| `engine/policy.py` | Routing auto-apprenant (apprend du journal) |
+| `engine/llm_client.py` | Appels réels : Ollama, Groq, Anthropic |
+| `engine/quality.py` | Évaluation qualité (modèle juge) |
+| `engine/escalation.py` | Ré-routage par qualité |
+| `engine/orchestrator.py` | Pipeline complet + chiffrage |
+| `engine/metrics.py` | Journalisation + statistiques |
+| `api.py` | API FastAPI exposant le moteur |
+| `llm-dashboard/` | Tableau de bord Vue 3 (KPI, graphes, simulateur) |
 
 ### Installation
 
 ```bash
-pip install tiktoken pymupdf requests groq anthropic python-dotenv
+pip install -r requirements.txt
+ollama pull qwen2.5:14b
+ollama pull llava            # vision (images / vidéos)
 ```
 
-Exécution locale via [Ollama](https://ollama.com) :
-
-```bash
-ollama pull qwen2.5:14b   # ou qwen2.5:3b pour une machine modeste
-```
-
-Clés API (gratuites pour Groq) dans un fichier `.env` à la racine :
+Pour l'OCR : installer le binaire **Tesseract** (+ pack de langue `fra`).
+Clés API dans un fichier `.env` à la racine :
 
 ```
 GROQ_API_KEY=...
 ANTHROPIC_API_KEY=...    # optionnel
 ```
 
-### Utilisation
+### Utilisation — moteur
 
 ```bash
-# Tester un module isolément
-python config.py
-python -m engine.preprocessor "chemin/vers/document.pdf"
-python -m engine.escalation
-
-# Lancer le pipeline complet et le benchmark
-python -m engine.metrics
+python -m engine.preprocessor "document.pdf"
+python -m engine.metrics        # pipeline complet + benchmark
+python -m engine.policy         # rafraîchit la politique de routing apprise
 ```
-
-Exemple programmatique :
 
 ```python
 from engine.orchestrator import process, report
-
-r = process(
-    "Résume ce rapport en trois points.",
-    file_path="rapport.pdf",
-    escalate=True,   # pipeline complet : exécution + qualité + ré-routage
-)
+r = process("Résume ce rapport.", file_path="rapport.pdf", escalate=True)
 print(report(r))
 ```
 
+### Utilisation — API + dashboard
+
+```bash
+# 1. API (depuis la racine)
+uvicorn api:app --reload --port 8000
+
+# 2. Dashboard (depuis llm-dashboard/)
+npm install
+npm run dev
+```
+
+Le tableau de bord offre une **vue d'ensemble** (KPI, effondrement des coûts, répartition par modèle, qualité vs coût, latence, compression), un **journal** des requêtes, et un **simulateur** : on tape une requête ou on importe un fichier, on choisit un profil (Entreprise = budget / Particulier = quota), et le moteur exécute en direct en montrant la décision, le coût réel vs baseline, et l'impact sur le budget.
+
 ### Benchmark (illustratif)
 
-Mesure sur un petit échantillon, exécution gratuite (Ollama `qwen2.5:14b`, juge Groq `llama-3.3-70b`) :
-
 ```
-5 requêtes (5 mesurées)
-Coût moteur      : 0.000000 $
-Coût baseline    : 0.063480 $   (tout envoyé à un modèle frontier)
-Économie         : -100 %       (routing vers modèle local gratuit)
-Tokens entrée    : -9 %
-Qualité moyenne  : 9.0 / 10     (jugée par un modèle 70B)
-Latence moyenne  : 20 s
-Escalades        : 0 / 5        (le modèle local suffisait)
+Routing vers modèles gratuits/locaux suffisant pour la majorité des requêtes
+Qualité moyenne : ≈9/10 (vérifiée par un modèle juge)
+Coût réservé aux seules tâches qui le nécessitent
 ```
 
-Lecture : sur cet échantillon, le routing vers un modèle local gratuit suffit, et la qualité — vérifiée par un juge plus puissant — reste élevée (9/10), sans qu'aucune escalade ne soit nécessaire. Le moteur valide donc l'économie au lieu de la supposer.
+La vraie optimisation n'est pas « moins cher » mais le point d'équilibre qualité/coût, prouvé par la mesure.
 
 ### Feuille de route
 
-- [x] Routing par plancher de qualité
-- [x] Contrôle qualité par modèle juge
-- [x] Ré-routage automatique par escalade
-- [x] Support Groq (tier gratuit) et Anthropic (avec garde-fou de dépense)
-- [ ] Pré-traitement de nouveaux formats : image, vidéo, docx
+- [x] Pré-traitement multi-formats (PDF, texte, image, vidéo)
+- [x] Routing par plancher de qualité + ré-routage par escalade
+- [x] Routing auto-apprenant
+- [x] API FastAPI + dashboard Vue 3 avec simulateur
 - [ ] Compression sémantique avancée (LLMLingua-2)
-- [ ] Routing auto-apprenant par utilisateur (seuils ajustés selon l'historique)
-- [ ] Tableau de bord de visualisation du benchmark
+- [ ] Apprentissage par utilisateur (profils distincts)
 
 ### Avertissement
 
-Les tarifs du catalogue (`config.py`) sont représentatifs et doivent être ajustés aux prix réels. Le comptage de tokens utilise `tiktoken` comme estimateur commun (approximation pour les modèles non-OpenAI). Projet expérimental, non destiné tel quel à un usage en production.
+Tarifs du catalogue (`config.py`) représentatifs, à ajuster. Comptage de tokens via `tiktoken` (approximation pour les modèles non-OpenAI). Projet expérimental.
 
 ---
 
@@ -131,120 +121,90 @@ Les tarifs du catalogue (`config.py`) sont représentatifs et doivent être ajus
 
 ### Overview
 
-`llm-router` sits between a user request and language models to **reduce inference cost without degrading quality**. For each request, it preprocesses attached files, compresses the prompt, classifies the task, routes to the cheapest capable model, executes the call, **scores the response quality via a judge model**, and **automatically escalates** to a higher model when quality falls short. Every execution is logged into a measured benchmark.
+`llm-router` sits between a request and language models to **cut inference cost without degrading quality**. For each request it preprocesses attached files, compresses the prompt, classifies the task, routes to the cheapest capable model, executes, scores quality via a judge model, and **escalates** only when needed. It **learns from history** to start at the right tier over time.
 
-The project runs entirely on **free** models by default: local Ollama and Groq's free tier (Llama 3.3 70B). Paid API support (Anthropic) is built in and ready, behind a spend guardrail.
+Runs entirely on **free** models by default (local Ollama + Groq free tier). Paid APIs (Anthropic) supported behind a spend guardrail.
 
 ### Pipeline
 
 ```
 Request (+ file)
-  ├─ File preprocessing   → clean PDF/text, tables as markdown, task-aware budget
-  ├─ Compression          → token reduction without loss of meaning
-  ├─ Classification       → trivial / simple / moderate / complex
-  ├─ Routing              → cheapest model above the quality floor
-  ├─ Execution            → real call (Ollama / Groq / Anthropic)
-  ├─ Quality control      → /10 score from a judge model (Groq 70B)
-  ├─ Re-routing (escalate)→ if quality < threshold, move up to a higher model
-  └─ Logging              → cumulative benchmark (cost, tokens, quality, latency, escalations)
+  ├─ Preprocessing   → PDF, text, image (OCR / vision), video (transcription + scenes)
+  ├─ Compression     → token reduction without loss of meaning
+  ├─ Classification  → trivial / simple / moderate / complex
+  ├─ Routing         → cheapest model above the floor (self-learned)
+  ├─ Execution       → real call (Ollama / Groq / Anthropic)
+  ├─ Quality control → /10 score from a judge model
+  ├─ Re-routing      → escalate to a higher model if quality is insufficient
+  └─ Logging         → measured benchmark (cost, tokens, quality, latency, escalations)
 ```
 
-### Architecture
+### Components
 
 | Module | Role |
 |--------|------|
-| `config.py` | Model catalogue, pricing, capability tiers |
-| `engine/tokens.py` | Token counting (tiktoken + fallback) |
-| `engine/preprocessor.py` | PDF/text extraction (PyMuPDF), tables, budget reduction |
-| `engine/compressor.py` | Deterministic, safe prompt compression |
-| `engine/classifier.py` | Task classification (Ollama + heuristic fallback) |
-| `engine/router.py` | Cheapest-model-above-floor selection + escalation target |
-| `engine/llm_client.py` | Real calls: Ollama, Groq, Anthropic (keys via `.env`, guardrail) |
-| `engine/quality.py` | Response quality evaluation (judge model) |
-| `engine/escalation.py` | Quality-driven re-routing: escalate to a higher tier |
-| `engine/orchestrator.py` | Full pipeline assembly and cost accounting |
-| `engine/metrics.py` | Persistent logging and aggregated statistics |
+| `config.py` | Model catalogue, pricing, tiers |
+| `engine/preprocessor.py` + `engine/media.py` | Multi-format extraction (PDF, text, image, video) |
+| `engine/compressor.py` | Prompt compression |
+| `engine/classifier.py` | Task classification |
+| `engine/router.py` + `engine/policy.py` | Routing + self-learning policy |
+| `engine/llm_client.py` | Real calls: Ollama, Groq, Anthropic |
+| `engine/quality.py` + `engine/escalation.py` | Quality scoring + re-routing |
+| `engine/orchestrator.py` | Full pipeline + cost accounting |
+| `engine/metrics.py` | Logging + statistics |
+| `api.py` | FastAPI backend |
+| `llm-dashboard/` | Vue 3 dashboard (KPIs, charts, simulator) |
 
-### How it works
-
-Each task class defines a **quality floor** (minimum tier). The router selects the cheapest model whose tier meets that floor. After execution, a **judge model** scores the response out of 10. If the score is below the configured threshold, the engine **escalates** to a higher-tier model and compares, keeping the best valid response. Each execution's cost is compared against a **baseline** (the whole request sent to the most capable model, unoptimised) to quantify the actual saving.
-
-### Installation
+### Setup
 
 ```bash
-pip install tiktoken pymupdf requests groq anthropic python-dotenv
+pip install -r requirements.txt
+ollama pull qwen2.5:14b
+ollama pull llava
 ```
 
-Local execution via [Ollama](https://ollama.com):
-
-```bash
-ollama pull qwen2.5:14b   # or qwen2.5:3b for a modest machine
-```
-
-API keys (free for Groq) in a `.env` file at the root:
+Install the **Tesseract** binary for OCR. API keys in `.env`:
 
 ```
 GROQ_API_KEY=...
 ANTHROPIC_API_KEY=...    # optional
 ```
 
-### Usage
+### Usage — engine
 
 ```bash
-# Test a module in isolation
-python config.py
-python -m engine.preprocessor "path/to/document.pdf"
-python -m engine.escalation
-
-# Run the full pipeline and benchmark
-python -m engine.metrics
+python -m engine.metrics        # full pipeline + benchmark
+python -m engine.policy         # refresh learned routing policy
 ```
-
-Programmatic example:
 
 ```python
 from engine.orchestrator import process, report
-
-r = process(
-    "Summarise this report in three points.",
-    file_path="report.pdf",
-    escalate=True,   # full pipeline: execution + quality + re-routing
-)
+r = process("Summarise this report.", file_path="report.pdf", escalate=True)
 print(report(r))
 ```
 
-### Benchmark (illustrative)
+### Usage — API + dashboard
 
-Measured on a small sample, free execution (Ollama `qwen2.5:14b`, Groq `llama-3.3-70b` judge):
-
-```
-5 requests (5 measured)
-Engine cost      : $0.000000
-Baseline cost    : $0.063480   (everything sent to a frontier model)
-Saving           : -100 %      (routed to free local model)
-Input tokens     : -9 %
-Avg. quality     : 9.0 / 10    (judged by a 70B model)
-Avg. latency     : 20 s
-Escalations      : 0 / 5       (the local model was sufficient)
+```bash
+uvicorn api:app --reload --port 8000      # from root
+cd llm-dashboard && npm install && npm run dev
 ```
 
-Reading: on this sample, routing to a free local model is sufficient, and quality — verified by a stronger judge — stays high (9/10) with no escalation needed. The engine validates the saving rather than assuming it.
+The dashboard provides an **overview** (KPIs, cost collapse, model split, quality vs cost, latency, compression), a request **ledger**, and a **simulator**: type a request or upload a file, pick a profile (Business = budget / Individual = token quota), and the engine runs live, showing the decision, real vs baseline cost, and budget impact.
 
 ### Roadmap
 
-- [x] Quality-floor routing
-- [x] Judge-model quality control
-- [x] Automatic escalation re-routing
-- [x] Groq (free tier) and Anthropic (with spend guardrail) support
-- [ ] Preprocessing for more formats: image, video, docx
+- [x] Multi-format preprocessing (PDF, text, image, video)
+- [x] Quality-floor routing + escalation re-routing
+- [x] Self-learning routing
+- [x] FastAPI backend + Vue 3 dashboard with simulator
 - [ ] Advanced semantic compression (LLMLingua-2)
-- [ ] Per-user self-learning routing (thresholds tuned from history)
-- [ ] Benchmark visualisation dashboard
+- [ ] Per-user learning (distinct profiles)
 
 ### Disclaimer
 
-Catalogue pricing (`config.py`) is representative and must be adjusted to real prices. Token counting uses `tiktoken` as a common estimator (approximate for non-OpenAI models). Experimental project, not intended for production use as-is.
+Catalogue pricing (`config.py`) is representative; adjust to real prices. Token counting uses `tiktoken` (approximate for non-OpenAI models). Experimental project.
 
 ---
 
-**Stack** : Python · Ollama (qwen2.5) · Groq (Llama 3.3 70B) · Anthropic · tiktoken · PyMuPDF
+**Stack** : Python · Ollama · Groq · Anthropic · FastAPI · Vue 3 · Tesseract · Whisper

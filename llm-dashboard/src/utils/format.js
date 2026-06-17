@@ -11,7 +11,7 @@ export function shortModel(name) {
   return name.replace('local/', '').replace('groq/', '').replace('anthropic/', '')
 }
 
-const RAMP = ['#46C7B6', '#C98A4B', '#6C8FD6', '#B86BD0', '#7CC36B', '#D6A14F']
+const RAMP = ['#EE8A3F', '#6E7F92', '#4BBE8A', '#5B9BD6', '#C98AE0', '#E5687B']
 const _assigned = {}
 let _i = 0
 export function modelColor(name) {
