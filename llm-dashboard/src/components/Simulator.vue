@@ -92,9 +92,9 @@ function nf(v) { return v === Infinity ? '∞' : v.toLocaleString('fr-FR') }
       </div>
 
       <div class="field">
-        <label>Fichier (optionnel · PDF, txt, md)</label>
+        <label>Fichier (optionnel · PDF, texte, image, vidéo)</label>
         <label class="file-btn">
-          <input type="file" accept=".pdf,.txt,.md" @change="onFile" hidden />
+          <input type="file" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.avif,.mp4,.mov,.mkv,.webm,.ts,.avi" @change="onFile" hidden />
           {{ fileName || 'Choisir un fichier' }}
         </label>
       </div>
