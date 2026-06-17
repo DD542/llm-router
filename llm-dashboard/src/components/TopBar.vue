@@ -54,4 +54,11 @@ h1{font-family:var(--display); font-weight:500; font-size:25px;
 .chip.on{background:var(--cool-dim); border-color:var(--cool); color:var(--text)}
 .cdot{width:8px; height:8px; border-radius:2px}
 .date{font-family:var(--mono); font-size:11px; color:var(--faint)}
+
+@media (max-width:640px){
+  .top{padding:20px 18px 16px}
+  h1{font-size:21px}
+  .top-r{align-items:flex-start; width:100%}
+  .slicer{justify-content:flex-start}
+}
 </style>

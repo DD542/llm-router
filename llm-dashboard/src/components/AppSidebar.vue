@@ -56,4 +56,15 @@ const items = [
   text-transform:uppercase; color:var(--faint); margin-bottom:5px}
 .foot-v{font-family:var(--mono); font-size:11px; color:var(--muted);
   word-break:break-all}
+
+@media (max-width:720px){
+  .side{width:100%; min-height:auto; flex-direction:row; align-items:center;
+    flex-wrap:wrap; gap:10px; padding:12px 16px;
+    border-right:none; border-bottom:1px solid var(--line)}
+  .brand{padding:0; flex:none}
+  .nav{flex-direction:row; flex:1; gap:6px; justify-content:flex-end}
+  .nav-item{padding:8px 13px}
+  .tick{display:none}
+  .side-foot{display:none}
+}
 </style>

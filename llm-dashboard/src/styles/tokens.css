@@ -38,3 +38,12 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 input,textarea,select{border-radius:var(--r-sm)!important}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* --- Responsive global --- */
+@media (max-width:720px){
+  .panel{padding:18px 16px!important}
+  body{font-size:15px}
+}
+@media (max-width:480px){
+  .panel{padding:16px 13px!important}
+}
